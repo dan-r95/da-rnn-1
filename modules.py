@@ -2,14 +2,14 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from torch.nn import functional as tf
-
+from constants import device
 
 def init_hidden(x, hidden_size: int):
     """
     Train the initial value of the hidden state:
     https://r2rt.com/non-zero-initial-states-for-recurrent-neural-networks.html
     """
-    return Variable(torch.zeros(1, x.size(0), hidden_size))
+    return Variable(torch.zeros(1, x.size(0), hidden_size)).to(device)
 
 
 class Encoder(nn.Module):
@@ -57,7 +57,7 @@ class Encoder(nn.Module):
             input_weighted[:, t, :] = weighted_input
             input_encoded[:, t, :] = hidden
 
-        return input_weighted, input_encoded
+        return input_weighted, input_encoded.to(device)
 
 
 class Decoder(nn.Module):
