@@ -18,6 +18,7 @@ from modules import Encoder, Decoder
 from custom_types import DaRnnNet, TrainData, TrainConfig
 from utils import numpy_to_tvar
 from constants import device
+from pytorch_memlab import profile, set_target_gpu
 
 logger = utils.setup_log()
 logger.info(f"Using computation device: {device}")
@@ -37,7 +38,7 @@ def preprocess_data(dat, col_names) -> Tuple[TrainData, StandardScaler]:
 
     return TrainData(feats, targs), scale
 
-
+@profile
 def da_rnn(train_data: TrainData, n_targs: int, encoder_hidden_size=64, decoder_hidden_size=64,
            T=10, learning_rate=0.01, batch_size=128):
 
