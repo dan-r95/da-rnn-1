@@ -200,8 +200,10 @@ debug = False
 
 # raw_data = pd.read_csv(os.path.join(
 #    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
-raw_data = pd.read_csv(os.path.join(
-    "/content/data", "sensor.csv"), nrows=100 if debug else None)
+
+path = "/content/data/pump/labeled/sensor.csv.pkl"
+raw_data = pd.read_pickle(path)
+
 logger.info(
     f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
 targ_cols = ("sensor_00", "sensor_04")
