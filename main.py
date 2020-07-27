@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch import optim
 from sklearn.preprocessing import StandardScaler
-from sklearn.externals import joblib
+import joblib
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -151,7 +151,7 @@ def train_iteration(t_net: DaRnnNet, loss_func: typing.Callable, X, y_history, y
     t_net.enc_opt.zero_grad()
     t_net.dec_opt.zero_grad()
 
-    input_weighted, input_encoded = t_net.encoder(numpy_to_tvar(X))
+    _, input_encoded = t_net.encoder(numpy_to_tvar(X))
     y_pred = t_net.decoder(input_encoded, numpy_to_tvar(y_history))
 
     y_true = numpy_to_tvar(y_target)
@@ -198,11 +198,13 @@ def predict(t_net: DaRnnNet, t_dat: TrainData, train_size: int, batch_size: int,
 save_plots = True
 debug = False
 
+# raw_data = pd.read_csv(os.path.join(
+#    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
 raw_data = pd.read_csv(os.path.join(
-    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
+    "/content/data", "sensor.csv"), nrows=100 if debug else None)
 logger.info(
     f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
-targ_cols = ("NDX",)
+targ_cols = ("sensor_00", "sensor_04")
 data, scaler = preprocess_data(raw_data, targ_cols)
 
 da_rnn_kwargs = {"batch_size": 128, "T": 10}
