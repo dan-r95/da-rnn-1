@@ -21,9 +21,43 @@ from constants import device
 from pytorch_memlab import profile, set_target_gpu
 
 import statsmodels.api as sm
+import argparse
 
 logger = utils.setup_log()
 logger.info(f"Using computation device: {device}")
+
+def parse_args():
+    """Parse arguments."""
+    # Parameters settings
+    parser = argparse.ArgumentParser(
+        description="PyTorch implementation of paper 'A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction'")
+
+    # Dataset setting
+    parser.add_argument('--dataroot', type=str,
+                        default="/content/pump/sensor.csv", help='path to dataset')
+    parser.add_argument('--batchsize', type=int, default=128,
+                        help='input batch size [128]')
+
+    # # Encoder / Decoder parameters setting
+    # parser.add_argument('--nhidden_encoder', type=int, default=128,
+    #                     help='size of hidden states for the encoder m [64, 128]')
+    # parser.add_argument('--nhidden_decoder', type=int, default=128,
+    #                     help='size of hidden states for the decoder p [64, 128]')
+    parser.add_argument('--ntimestep', type=int, default=10,
+                        help='the number of time steps in the window T [10]')
+
+    # Training parameters setting
+    parser.add_argument('--epochs', type=int, default=10,
+                        help='number of epochs to train [10, 200, 500]', required= True)
+    parser.add_argument('--lr', type=float, default=0.001,
+                        help='learning rate [0.001] reduced by 0.1 after each 10000 iterations')
+
+    # parse the arguments
+    args = parser.parse_args()
+
+    return args
+
+
 
 
 def preprocess_data(dat, col_names) -> Tuple[TrainData, StandardScaler]:
@@ -202,8 +236,7 @@ save_plots = True
 debug = False
 
 
-#TODO use parse arguments
-
+args = parse_args()
 # raw_data = pd.read_csv(os.path.join(
 #    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
 
@@ -213,15 +246,15 @@ raw_data = sm.datasets.longley.load_pandas().data
 logger.info(
     f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
 #targ_cols = ("sensor_00", "sensor_04")
-targ_cols = ("ARMED")
+targ_cols = ("ARMED",)
 #targ_cols = ("NDX",)
 data, scaler = preprocess_data(raw_data, targ_cols)
 
-da_rnn_kwargs = {"batch_size": 256, "T": 10}
+da_rnn_kwargs = {"batch_size": args.batchsize, "T": args.ntimestep}
 config, model = da_rnn(data, n_targs=len(targ_cols),
-                       learning_rate=.001, **da_rnn_kwargs)
+                       learning_rate=args.lr, **da_rnn_kwargs)
 iter_loss, epoch_loss = train(
-    model, data, config, n_epochs=10, save_plots=save_plots)
+    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
 final_y_pred = predict(model, data, config.train_size,
                        config.batch_size, config.T)
 
