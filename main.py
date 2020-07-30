@@ -18,7 +18,7 @@ from modules import Encoder, Decoder
 from custom_types import DaRnnNet, TrainData, TrainConfig
 from utils import numpy_to_tvar
 from constants import device
-from pytorch_memlab import profile, set_target_gpu
+from pytorch_memlab import profile, set_target_gpu, LineProfiler
 
 import statsmodels.api as sm
 import argparse
@@ -157,6 +157,7 @@ def train(net: DaRnnNet, train_data: TrainData, t_cfg: TrainConfig, n_epochs=10,
                      label='Predicted - Test')
             plt.legend(loc='upper left')
             utils.save_or_show_plot(f"pred_{e_i}.png", save_plots)
+            plt.close('all')
 
     return iter_losses, epoch_losses
 
@@ -253,8 +254,12 @@ data, scaler = preprocess_data(raw_data, targ_cols)
 da_rnn_kwargs = {"batch_size": args.batchsize, "T": args.ntimestep}
 config, model = da_rnn(data, n_targs=len(targ_cols),
                        learning_rate=args.lr, **da_rnn_kwargs)
-iter_loss, epoch_loss = train(
-    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
+with LineProfiler(train) as prof:
+    iter_loss, epoch_loss = train(
+    model, data, config, n_epochs=100, save_plots=save_plots)
+prof.display()                       
+#iter_loss, epoch_loss = train(
+#    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
 final_y_pred = predict(model, data, config.train_size,
                        config.batch_size, config.T)
 
