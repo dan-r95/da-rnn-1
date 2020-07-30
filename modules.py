@@ -34,9 +34,9 @@ class Encoder(nn.Module):
     def forward(self, input_data):
         # input_data: (batch_size, T - 1, input_size)
         input_weighted = Variable(torch.zeros(
-            input_data.size(0), self.T - 1, self.input_size))
+            input_data.size(0), self.T - 1, self.input_size)).to(device)
         input_encoded = Variable(torch.zeros(
-            input_data.size(0), self.T - 1, self.hidden_size))
+            input_data.size(0), self.T - 1, self.hidden_size)).to(device)
         # hidden, cell: initial states with dimension hidden_size
         # 1 * batch_size * hidden_size
         hidden = init_hidden(input_data, self.hidden_size)
@@ -98,7 +98,7 @@ class Decoder(nn.Module):
         hidden = init_hidden(input_encoded, self.decoder_hidden_size)
         cell = init_hidden(input_encoded, self.decoder_hidden_size)
         context = Variable(torch.zeros(
-            input_encoded.size(0), self.encoder_hidden_size))
+            input_encoded.size(0), self.encoder_hidden_size)).to(device)
 
         for t in range(self.T - 1):
             # (batch_size, T, (2 * decoder_hidden_size + encoder_hidden_size))

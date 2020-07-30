@@ -6,7 +6,7 @@ import os
 import torch
 from torch import nn
 from torch import optim
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import joblib
 
 import matplotlib.pyplot as plt
@@ -20,12 +20,15 @@ from utils import numpy_to_tvar
 from constants import device
 from pytorch_memlab import profile, set_target_gpu
 
+import statsmodels.api as sm
+
 logger = utils.setup_log()
 logger.info(f"Using computation device: {device}")
 
 
 def preprocess_data(dat, col_names) -> Tuple[TrainData, StandardScaler]:
-    scale = StandardScaler().fit(dat)
+    scale = MinMaxScaler().fit(dat)
+    #scale = StandardScaler().fit(dat)
     proc_dat = scale.transform(dat)
 
     mask = np.ones(proc_dat.shape[1], dtype=bool)
@@ -198,18 +201,23 @@ def predict(t_net: DaRnnNet, t_dat: TrainData, train_size: int, batch_size: int,
 save_plots = True
 debug = False
 
+
+#TODO use parse arguments
+
 # raw_data = pd.read_csv(os.path.join(
 #    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
 
 path = "/content/data/pump/labeled/sensor.csv.pkl"
-raw_data = pd.read_pickle(path)
-
+#raw_data = pd.read_pickle(path)
+raw_data = sm.datasets.longley.load_pandas()
 logger.info(
     f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
-targ_cols = ("sensor_00", "sensor_04")
+#targ_cols = ("sensor_00", "sensor_04")
+t_args_cols = ("ARMED")
+#targ_cols = ("NDX",)
 data, scaler = preprocess_data(raw_data, targ_cols)
 
-da_rnn_kwargs = {"batch_size": 128, "T": 10}
+da_rnn_kwargs = {"batch_size": 256, "T": 10}
 config, model = da_rnn(data, n_targs=len(targ_cols),
                        learning_rate=.001, **da_rnn_kwargs)
 iter_loss, epoch_loss = train(
