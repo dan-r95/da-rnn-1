@@ -238,16 +238,31 @@ debug = False
 
 
 args = parse_args()
-# raw_data = pd.read_csv(os.path.join(
-#    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
-
-path = "/content/data/pump/labeled/sensor.csv.pkl"
+"""
+raw_data = pd.read_csv(os.path.join(
+    "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
+"""
+#path = "/content/data/pump/labeled/sensor.csv.pkl"
+path= "/content/data/smart-rain/All_Data_No0.csv"
 #raw_data = pd.read_pickle(path)
-raw_data = sm.datasets.longley.load_pandas().data
+raw_data = pd.read_csv(path)
+raw_data['time'] =  pd.to_datetime(raw_data['time'],)
+raw_data.drop(['time', "Rain"], axis=1, inplace = True)
+print(raw_data.head())
+
+#raw_data = raw_data.set_index("time")
+#raw_data.index = pd.to_datetime(raw_data.index)
+#raw_data = sm.datasets.rwm.load_pandas().data
+#raw_data = sm.datasets.get_rdataset("datasets", "treering")
+
+print(raw_data.head())
+print(raw_data.columns)
+
+print(raw_data.tail())
 logger.info(
     f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
 #targ_cols = ("sensor_00", "sensor_04")
-targ_cols = ("ARMED",)
+targ_cols = ("temperature",) # "RH"
 #targ_cols = ("NDX",)
 data, scaler = preprocess_data(raw_data, targ_cols)
 
@@ -256,7 +271,7 @@ config, model = da_rnn(data, n_targs=len(targ_cols),
                        learning_rate=args.lr, **da_rnn_kwargs)
 with LineProfiler(train) as prof:
     iter_loss, epoch_loss = train(
-    model, data, config, n_epochs=100, save_plots=save_plots)
+    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
 prof.display()                       
 #iter_loss, epoch_loss = train(
 #    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
