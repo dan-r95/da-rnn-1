@@ -209,11 +209,11 @@ debug = False
 
 path = "/content/data/pump/labeled/sensor.csv.pkl"
 #raw_data = pd.read_pickle(path)
-raw_data = sm.datasets.longley.load_pandas()
+raw_data = sm.datasets.longley.load_pandas().data
 logger.info(
     f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
 #targ_cols = ("sensor_00", "sensor_04")
-t_args_cols = ("ARMED")
+targ_cols = ("ARMED")
 #targ_cols = ("NDX",)
 data, scaler = preprocess_data(raw_data, targ_cols)
 
