@@ -295,7 +295,7 @@ def main(raw_args = None):
     config, model = da_rnn(data, n_targs=len(targ_cols),
                            learning_rate=arguments.lr, **da_rnn_kwargs)
    
-    iter_loss, epoch_loss = train(model, data, config, n_epochs=args.epochs, save_plots=save_plots)
+    iter_loss, epoch_loss = train(model, data, config, n_epochs=arguments.epochs, save_plots=save_plots)
     final_y_pred = predict(model, data, config.train_size,
                            config.batch_size, config.T)
 
