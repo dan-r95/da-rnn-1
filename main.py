@@ -27,12 +27,14 @@ logger = utils.setup_log()
 logger.info(f"Using computation device: {device}")
 
 
-def parse_args():
+def parse_args(raw_args):
+    print(raw_args)
     """Parse arguments."""
     # Parameters settings
     parser = argparse.ArgumentParser(
         description="PyTorch implementation of paper 'A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction'")
 
+  
     # Dataset setting
     parser.add_argument('--dataroot', type=str,
                         default="/content/pump/sensor.csv", help='path to dataset')
@@ -50,13 +52,18 @@ def parse_args():
     # Training parameters setting
     parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train [10, 200, 500]', required=True)
-    parser.add_argument('--task', type=string,
+    parser.add_argument('--task',
                         help='dataset to use for preprocessing', required=True)
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate [0.001] reduced by 0.1 after each 10000 iterations')
 
+    if len(raw_args)> 0 :
+        args = parser.parse_args(raw_args)
+        return args
+
     # parse the arguments
     args = parser.parse_args()
+
 
     return args
 
@@ -234,14 +241,22 @@ def predict(t_net: DaRnnNet, t_dat: TrainData, train_size: int, batch_size: int,
     return y_pred
 
 
-def main():
+def main(raw_args = None):
+
+    """
+    Call like this: 
+    ['-f', '/etc/hosts', '-t', 'json']
+    """
+
     save_plots = True
     debug = False
 
-    args = parse_args()
+    arguments = parse_args(raw_args)
+
+ 
 
     """ handle different datasets"""
-    if args.task == "smart-rain":
+    if arguments.task == "smart-rain":
         path = "/content/data/pump/labeled/sensor.csv.pkl"
         path= "/content/data/smart-rain/All_Data_No0.csv"
         #raw_data = pd.read_pickle(path)
@@ -249,9 +264,9 @@ def main():
         raw_data['time'] =  pd.to_datetime(raw_data['time'],)
         raw_data.drop(['time', "Rain"], axis=1, inplace = True)
         print(raw_data.head())
-    elif args.task == "pump":
+    elif arguments.task == "pump":
         print("pump")
-    elif args.task == "smartrain":
+    elif arguments.task == "smartrain":
         #path = "/content/data/pump/labeled/sensor.csv.pkl"
         path = "/content/data/smart-rain/All_Data_No0.csv"
         #raw_data = pd.read_pickle(path)
@@ -289,12 +304,12 @@ def main():
     #targ_cols = ("NDX",)
     data, scaler = preprocess_data(raw_data, targ_cols)
 
-    da_rnn_kwargs = {"batch_size": args.batchsize, "T": args.ntimestep}
+    da_rnn_kwargs = {"batch_size": arguments.batchsize, "T": arguments.ntimestep}
     config, model = da_rnn(data, n_targs=len(targ_cols),
-                           learning_rate=args.lr, **da_rnn_kwargs)
+                           learning_rate=arguments.lr, **da_rnn_kwargs)
     with LineProfiler(train) as prof:
         iter_loss, epoch_loss = train(
-            model, data, config, n_epochs=args.epochs, save_plots=save_plots)
+            model, data, config, n_epochs=arguments.epochs, save_plots=save_plots)
     prof.display()
     # iter_loss, epoch_loss = train(
     #    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
