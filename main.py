@@ -52,7 +52,7 @@ def parse_args(raw_args):
     # Training parameters setting
     parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train [10, 200, 500]', required=True)
-    parser.add_argument('--task',
+    parser.add_argument('--task', type= str,
                         help='dataset to use for preprocessing', required=True)
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate [0.001] reduced by 0.1 after each 10000 iterations')
@@ -245,7 +245,7 @@ def main(raw_args = None):
 
     """
     Call like this: 
-    ['-f', '/etc/hosts', '-t', 'json']
+    ['--tasks', 'smartrain', '-epochs', '500']
     """
 
     save_plots = True
@@ -256,14 +256,9 @@ def main(raw_args = None):
  
 
     """ handle different datasets"""
-    if arguments.task == "smart-rain":
-        path = "/content/data/pump/labeled/sensor.csv.pkl"
-        path= "/content/data/smart-rain/All_Data_No0.csv"
-        #raw_data = pd.read_pickle(path)
-        raw_data = pd.read_csv(path)
-        raw_data['time'] =  pd.to_datetime(raw_data['time'],)
-        raw_data.drop(['time', "Rain"], axis=1, inplace = True)
-        print(raw_data.head())
+    if arguments.task == "nasdaq":
+        raw_data = pd.read_csv(os.path.join(
+        "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
     elif arguments.task == "pump":
         print("pump")
     elif arguments.task == "smartrain":
@@ -287,16 +282,8 @@ def main(raw_args = None):
     else:
         raise ValueError('Invalid task.')
 
-    """
-    raw_data = pd.read_csv(os.path.join(
-        "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
-    """
-    #
-    """
-    raw_data = pd.read_csv(os.path.join(
-        "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
-    """
-    
+
+  
     logger.info(
         f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
     #targ_cols = ("sensor_00", "sensor_04")
@@ -307,12 +294,8 @@ def main(raw_args = None):
     da_rnn_kwargs = {"batch_size": arguments.batchsize, "T": arguments.ntimestep}
     config, model = da_rnn(data, n_targs=len(targ_cols),
                            learning_rate=arguments.lr, **da_rnn_kwargs)
-    with LineProfiler(train) as prof:
-        iter_loss, epoch_loss = train(
-            model, data, config, n_epochs=arguments.epochs, save_plots=save_plots)
-    prof.display()
-    # iter_loss, epoch_loss = train(
-    #    model, data, config, n_epochs=args.epochs, save_plots=save_plots)
+   
+    iter_loss, epoch_loss = train(model, data, config, n_epochs=args.epochs, save_plots=save_plots)
     final_y_pred = predict(model, data, config.train_size,
                            config.batch_size, config.T)
 
