@@ -16,7 +16,7 @@ import numpy as np
 import utils
 from modules import Encoder, Decoder
 from custom_types import DaRnnNet, TrainData, TrainConfig
-from utils import numpy_to_tvar
+from utils import numpy_to_tensor
 from constants import device
 from pytorch_memlab import profile, set_target_gpu, LineProfiler
 
@@ -68,8 +68,9 @@ def parse_args(raw_args):
     return args
 
 
-def preprocess_data(dat, col_names) -> Tuple[TrainData, StandardScaler]:
-    scale = MinMaxScaler().fit(dat)
+def preprocess_data(dat, col_names, scale=None) -> Tuple[TrainData, StandardScaler]:
+    if scale is None:
+        scale = StandardScaler().fit(dat)
     #scale = StandardScaler().fit(dat)
     proc_dat = scale.transform(dat)
 
@@ -129,9 +130,8 @@ def train(net: DaRnnNet, train_data: TrainData, t_cfg: TrainConfig, n_epochs=10,
         perm_idx = np.random.permutation(t_cfg.train_size - t_cfg.T)
 
         for t_i in range(0, t_cfg.train_size, t_cfg.batch_size):
-            batch_idx = perm_idx[t_i:(t_i + t_cfg.batch_size)]
-            feats, y_history, y_target = prep_train_data(
-                batch_idx, t_cfg, train_data)
+            batch_idx = perm_idx[t_i : t_i + t_cfg.batch_size]
+            feats, y_history, y_target = prep_train_data(batch_idx, t_cfg, train_data)
 
             loss = train_iteration(net, t_cfg.loss_func,
                                    feats, y_history, y_target)
@@ -171,15 +171,10 @@ def train(net: DaRnnNet, train_data: TrainData, t_cfg: TrainConfig, n_epochs=10,
 
 
 def prep_train_data(batch_idx: np.ndarray, t_cfg: TrainConfig, train_data: TrainData):
-    feats = np.zeros((len(batch_idx), t_cfg.T - 1, train_data.feats.shape[1]))
-    y_history = np.zeros(
-        (len(batch_idx), t_cfg.T - 1, train_data.targs.shape[1]))
-    y_target = train_data.targs[batch_idx + t_cfg.T]
 
-    for b_i, b_idx in enumerate(batch_idx):
-        b_slc = slice(b_idx, b_idx + t_cfg.T - 1)
-        feats[b_i, :, :] = train_data.feats[b_slc, :]
-        y_history[b_i, :] = train_data.targs[b_slc]
+    feats = np.zeros((len(batch_idx), t_cfg.T, train_data.feats.shape[1]))
+        start, stop = b_idx, b_idx + t_cfg.T
+        feats[b_i, :, :] = train_data.feats[start : stop, :]
 
     return feats, y_history, y_target
 
@@ -197,10 +192,12 @@ def train_iteration(t_net: DaRnnNet, loss_func: typing.Callable, X, y_history, y
     t_net.enc_opt.zero_grad()
     t_net.dec_opt.zero_grad()
 
-    _, input_encoded = t_net.encoder(numpy_to_tvar(X))
-    y_pred = t_net.decoder(input_encoded, numpy_to_tvar(y_history))
 
-    y_true = numpy_to_tvar(y_target)
+    input_weighted, input_encoded = t_net.encoder(numpy_to_tensor(X))
+    y_pred = t_net.decoder(input_encoded, numpy_to_tensor(y_history))
+
+
+    y_true = numpy_to_tensor(y_target)
     loss = loss_func(y_pred, y_true)
     loss.backward()
 
@@ -221,26 +218,27 @@ def predict(t_net: DaRnnNet, t_dat: TrainData, train_size: int, batch_size: int,
         y_slc = slice(y_i, y_i + batch_size)
         batch_idx = range(len(y_pred))[y_slc]
         b_len = len(batch_idx)
-        X = np.zeros((b_len, T - 1, t_dat.feats.shape[1]))
+        X = np.zeros((b_len, T, t_dat.feats.shape[1]))
         y_history = np.zeros((b_len, T - 1, t_dat.targs.shape[1]))
 
         for b_i, b_idx in enumerate(batch_idx):
             if on_train:
-                idx = range(b_idx, b_idx + T - 1)
+                start, stop = b_idx, b_idx + T
             else:
-                idx = range(b_idx + train_size - T, b_idx + train_size - 1)
+                start, stop = b_idx + train_size - T, b_idx + train_size
 
-            X[b_i, :, :] = t_dat.feats[idx, :]
-            y_history[b_i, :] = t_dat.targs[idx]
+            X[b_i, :, :] = t_dat.feats[start : stop, :]
+            y_history[b_i, :] = t_dat.targs[start : stop - 1]
 
-        y_history = numpy_to_tvar(y_history)
-        _, input_encoded = t_net.encoder(numpy_to_tvar(X))
-        y_pred[y_slc] = t_net.decoder(
-            input_encoded, y_history).cpu().data.numpy()
+
+        y_history = numpy_to_tensor(y_history)
+        _, input_encoded = t_net.encoder(numpy_to_tensor(X))
+        y_pred[y_slc] = t_net.decoder(input_encoded, y_history).cpu().data.numpy()
 
     return y_pred
 
 
+<<<<<<< HEAD
 def main(raw_args = None):
 
     """
