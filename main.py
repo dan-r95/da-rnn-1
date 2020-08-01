@@ -57,7 +57,7 @@ def parse_args(raw_args):
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate [0.001] reduced by 0.1 after each 10000 iterations')
 
-    if len(raw_args)> 0 :
+    if raw_args is not None and len(raw_args)> 0 :
         args = parser.parse_args(raw_args)
         return args
 
