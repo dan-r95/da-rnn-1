@@ -259,8 +259,10 @@ def main(raw_args = None):
     if arguments.task == "nasdaq":
         raw_data = pd.read_csv(os.path.join(
         "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
+        targ_cols = ("NDX",)  # "RH"
     elif arguments.task == "pump":
         print("pump")
+        targ_cols = ("sensor_00", "sensor_04")
     elif arguments.task == "smartrain":
         #path = "/content/data/pump/labeled/sensor.csv.pkl"
         path = "/content/data/smart-rain/All_Data_No0.csv"
@@ -279,6 +281,7 @@ def main(raw_args = None):
         print(raw_data.columns)
 
         print(raw_data.tail())
+        targ_cols = ("temperature",)  # "RH"
     else:
         raise ValueError('Invalid task.')
 
@@ -286,9 +289,9 @@ def main(raw_args = None):
   
     logger.info(
         f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
-    #targ_cols = ("sensor_00", "sensor_04")
-    targ_cols = ("temperature",)  # "RH"
-    #targ_cols = ("NDX",)
+   
+    
+
     data, scaler = preprocess_data(raw_data, targ_cols)
 
     da_rnn_kwargs = {"batch_size": arguments.batchsize, "T": arguments.ntimestep}
