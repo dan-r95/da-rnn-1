@@ -57,7 +57,7 @@ def parse_args(raw_args):
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate [0.001] reduced by 0.1 after each 10000 iterations')
 
-    if len(raw_args)> 0 :
+    if raw_args is not None and len(raw_args)> 0 :
         args = parser.parse_args(raw_args)
         return args
 
@@ -173,8 +173,13 @@ def train(net: DaRnnNet, train_data: TrainData, t_cfg: TrainConfig, n_epochs=10,
 def prep_train_data(batch_idx: np.ndarray, t_cfg: TrainConfig, train_data: TrainData):
 
     feats = np.zeros((len(batch_idx), t_cfg.T, train_data.feats.shape[1]))
+    y_history = np.zeros((len(batch_idx), t_cfg.T - 1, train_data.targs.shape[1]))
+    y_target = train_data.targs[batch_idx + t_cfg.T]
+
+    for b_i, b_idx in enumerate(batch_idx):
         start, stop = b_idx, b_idx + t_cfg.T
         feats[b_i, :, :] = train_data.feats[start : stop, :]
+        y_history[b_i, :] = train_data.targs[start : stop - 1]
 
     return feats, y_history, y_target
 
@@ -238,7 +243,6 @@ def predict(t_net: DaRnnNet, t_dat: TrainData, train_size: int, batch_size: int,
     return y_pred
 
 
-<<<<<<< HEAD
 def main(raw_args = None):
 
     """
@@ -257,6 +261,7 @@ def main(raw_args = None):
     if arguments.task == "nasdaq":
         raw_data = pd.read_csv(os.path.join(
         "data", "nasdaq100_padding.csv"), nrows=100 if debug else None)
+        targ_cols = ("NDX",)
     elif arguments.task == "pump":
         print("pump")
     elif arguments.task == "smartrain":
@@ -277,6 +282,7 @@ def main(raw_args = None):
         print(raw_data.columns)
 
         print(raw_data.tail())
+        targ_cols = ("temperature",)  # "RH"
     else:
         raise ValueError('Invalid task.')
 
@@ -285,8 +291,8 @@ def main(raw_args = None):
     logger.info(
         f"Shape of data: {raw_data.shape}.\nMissing in data: {raw_data.isnull().sum().sum()}.")
     #targ_cols = ("sensor_00", "sensor_04")
-    targ_cols = ("temperature",)  # "RH"
-    #targ_cols = ("NDX",)
+   
+    
     data, scaler = preprocess_data(raw_data, targ_cols)
 
     da_rnn_kwargs = {"batch_size": arguments.batchsize, "T": arguments.ntimestep}
